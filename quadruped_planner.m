@@ -2,7 +2,7 @@ start = struct('body', [0;0], 'rf', [0.1;-0.05],...
                               'lf', [0.1;0.05],...
                               'rh', [-0.1;-0.05],...
                               'lh', [-0.1;0.05]);
-goal = struct('body', [0.2;0]);
+goal = struct('body', [0.5;0]);
 
 gait = struct('rf', {}, 'lf', {}, 'rh', {}, 'lh', {});
 feet = fieldnames(gait)';
@@ -16,7 +16,7 @@ gait(6) = struct('rf', true, 'lf', true, 'rh', true, 'lh', false);
 gait(7) = struct('rf', false, 'lf', true, 'rh', true, 'lh', false);
 gait(8) = struct('rf', false, 'lf', true, 'rh', true, 'lh', true);
 
-num_periods = 2;
+num_periods = 4;
 for j = 2:num_periods
   gait = [gait, gait];
 end
@@ -34,7 +34,7 @@ foci = struct('rf', struct('v', {[0.1; -0.05]}, 'r', {0.05}),...
 SWING_SPEED = 1;
 
 constraints = [body_pos(:,1) == start.body,...
-               dt >= 0.02];
+               dt >= 0];
 for f = feet
   foot = f{1};
   constraints = [constraints, feet_pos.(foot)(:,1) == start.(foot)];
@@ -106,3 +106,11 @@ for j = 1:nsteps-1
   end
 end
 legend(feet{:})
+
+x = [body_pos; feet_pos.(feet{1}); feet_pos.(feet{2}); feet_pos.(feet{3}); feet_pos.(feet{4})];
+xtraj = PPTrajectory(foh(t, x));
+
+r = QuadrupedPlant();
+xtraj = setOutputFrame(xtraj, r.getStateFrame());
+v = QuadrupedVisualizer(r);
+v.playback(xtraj, struct('slider', true));

@@ -27,8 +27,8 @@ classdef QuadrupedVisualizer < Visualizer
       plot(x(9), x(10), 'mo', 'MarkerSize', 10)
       
       axis equal
-      xlim([-0.1; 0.7])
-      ylim([-0.4; 0.4])
+      xlim([-0.1; 1.1])
+      ylim([-0.6; 0.6])
       grid on
     end
    end

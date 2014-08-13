@@ -1,8 +1,26 @@
+safe_regions = struct('A', {}, 'b', {}, 'point', {});
+V = [-1, .45, .45, -1; 1, 1, -1, -1];
+[A, b] = poly2lincon(V(1,:), V(2,:));
+safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.3;0]);
+
+V = [.55, 2, 2, .55; 1, 1, -1, -1];
+[A, b] = poly2lincon(V(1,:), V(2,:));
+safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.8;0]);
+
+V = [.5,.51,.5,.51; -.05, -.05, -.051, -.051];
+[A, b] = poly2lincon(V(1,:), V(2,:));
+safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.5;-.05]);
+
+V = [.5,.51,.51,.5; .05, .05, .051, .051];
+[A, b] = poly2lincon(V(1,:), V(2,:));
+safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.5;.05]);
+
+
 start = struct('body', [0;0], 'rf', [0.1;-0.05],...
                               'lf', [0.1;0.05],...
                               'rh', [-0.1;-0.05],...
                               'lh', [-0.1;0.05]);
-goal = struct('body', [1;0.5]);
+goal = struct('body', [1;0]);
 
 gait = struct('rf', {}, 'lf', {}, 'rh', {}, 'lh', {});
 feet = fieldnames(gait)';
@@ -26,20 +44,35 @@ nsteps = length(gait);
 body_pos = sdpvar(2, nsteps, 'full');
 feet_pos = struct('rf', sdpvar(2, nsteps, 'full'), 'lf', sdpvar(2, nsteps, 'full'), 'rh', sdpvar(2, nsteps, 'full'), 'lh', sdpvar(2, nsteps, 'full'));
 dt = sdpvar(1, nsteps, 'full');
+nr = length(safe_regions);
+region = struct('rf', binvar(nr, nsteps, 'full'), 'lf', binvar(nr, nsteps, 'full'), 'rh', binvar(nr, nsteps, 'full'), 'lh', binvar(nr, nsteps, 'full'));
 
 foci = struct('rf', struct('v', {[0.1; -0.05]}, 'r', {0.05}),...
               'lf', struct('v', {[0.1; 0.05]}, 'r', {0.05}),...
               'rh', struct('v', {[-0.1; -0.05]}, 'r', {0.05}),...
               'lh', struct('v', {[-0.1; 0.05]}, 'r', {0.05}));
 SWING_SPEED = 1;
+BODY_SPEED = 0.25;
+MAX_DISTANCE = 30;
 
 constraints = [body_pos(:,1) == start.body,...
-               dt >= 0];
+               dt >= 0,...
+               start.body(1) - MAX_DISTANCE <= body_pos(1,:) <= start.body(1) + MAX_DISTANCE,...
+               start.body(2) - MAX_DISTANCE <= body_pos(2,:) <= start.body(2) + MAX_DISTANCE,...
+               ];
 for f = feet
   foot = f{1};
-  constraints = [constraints, feet_pos.(foot)(:,1) == start.(foot)];
+  constraints = [constraints, feet_pos.(foot)(:,1) == start.(foot), ...
+                 sum(region.(foot), 1) == 1,...
+%                  region.(foot)(1,:) == 1,...
+                 start.(foot)(1) - MAX_DISTANCE <= feet_pos.(foot)(1,:) <= start.(foot)(1) + MAX_DISTANCE,...
+                 start.(foot)(2) - MAX_DISTANCE <= feet_pos.(foot)(2,:) <= start.(foot)(2) + MAX_DISTANCE,...
+                 ];
 end
 constraints = [constraints, body_pos(:,end) == goal.body];
+
+
+objective = sum(dt);
 
 for j = 1:nsteps
   for f = feet
@@ -51,18 +84,27 @@ for j = 1:nsteps
       constraints = [constraints, cone(feet_pos.(foot)(:,j) - (body_pos(:,j) + c.v), c.r)];
     end
     
+    % Enforce region membership
+    for r = 1:nr
+      constraints = [constraints, implies(region.(foot)(r,j), safe_regions(r).A * feet_pos.(foot)(:,j) <= safe_regions(r).b)];
+    end
+    
     if j < nsteps
       % Enforce fixed feet and swing speed for free feet
       if gait(j).(foot)
-        constraints = [constraints, feet_pos.(foot)(:,j) == feet_pos.(foot)(:,j+1)];
+        constraints = [constraints, feet_pos.(foot)(:,j) == feet_pos.(foot)(:,j+1),...
+                       region.(foot)(:,j) == region.(foot)(:,j+1)];
       else
         constraints = [constraints, cone(feet_pos.(foot)(:,j+1) - feet_pos.(foot)(:,j), dt(j) * SWING_SPEED)];
       end
+      objective = objective + norm(feet_pos.(foot)(:,j+1) - feet_pos.(foot)(:,j));
     end
+  end
+  if j < nsteps
+    constraints = [constraints, cone(body_pos(:,j+1) - body_pos(:,j), dt(j) * BODY_SPEED)];
   end
 end
 
-objective = sum(dt);
 
 solvesdp(constraints, objective, sdpsettings('solver', 'gurobi'));
 
@@ -112,5 +154,5 @@ xtraj = PPTrajectory(foh(t, x));
 
 r = QuadrupedPlant();
 xtraj = setOutputFrame(xtraj, r.getStateFrame());
-v = QuadrupedVisualizer(r);
+v = QuadrupedVisualizer(r, safe_regions);
 v.playback(xtraj, struct('slider', true));

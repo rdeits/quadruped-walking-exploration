@@ -1,5 +1,9 @@
 safe_regions = struct('A', {}, 'b', {}, 'point', {});
-V = [-1, .41, .41, -1; 1, 1, -1, -1];
+V = [-0.15, 0.2 .2, -0.15; 0.2, 0.2, -0.2, -0.2];
+[A, b] = poly2lincon(V(1,:), V(2,:));
+safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.3;0]);
+
+V = [0.25, 0.4 .4, 0.25; 0, 0, -0.3, -0.3];
 [A, b] = poly2lincon(V(1,:), V(2,:));
 safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.3;0]);
 
@@ -15,6 +19,14 @@ V = [.5,.51,.51,.5; .05, .05, .06, .06];
 [A, b] = poly2lincon(V(1,:), V(2,:));
 safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.5;.05]);
 
+V = [.45,.46,.46,.45; 0, 0, .01, .01];
+[A, b] = poly2lincon(V(1,:), V(2,:));
+safe_regions(end+1) = struct('A', A, 'b', b, 'point', [.5;.05]);
+
+
+robot = QuadrupedPlant();
+v = QuadrupedVisualizer(robot, safe_regions);
+v.draw(0, zeros(11,1));
 
 start = struct('body', [0;0], 'rf', [0.1;-0.05],...
                               'lf', [0.1;0.05],...
@@ -57,7 +69,7 @@ foci = struct('rf', struct('v', {[0.1; -0.05]}, 'r', {0.05}),...
 SWING_SPEED = 1;
 BODY_SPEED = 0.25;
 MAX_DISTANCE = 30;
-ROTATION_RATE = 10;
+ROTATION_RATE = 1;
 
 constraints = [body_pos(:,1) == start.body,...
                dt >= 0,...
@@ -105,7 +117,8 @@ for j = 1:nsteps
       else
         constraints = [constraints, cone(feet_pos.(foot)(:,j+1) - feet_pos.(foot)(:,j), dt(j) * SWING_SPEED)];
       end
-      objective = objective + norm(feet_pos.(foot)(:,j+1) - feet_pos.(foot)(:,j));
+      objective = objective + norm(feet_pos.(foot)(:,j+1) - feet_pos.(foot)(:,j))...
+                            + norm(body_pos(:,j+1) - body_pos(:,j));
     end
   end
   if j < nsteps
@@ -168,8 +181,6 @@ legend(feet{:})
 yaw = atan2(double(sin_yaw), double(cos_yaw));
 x = [body_pos; yaw; feet_pos.(feet{1}); feet_pos.(feet{2}); feet_pos.(feet{3}); feet_pos.(feet{4})];
 xtraj = PPTrajectory(foh(t, x));
+xtraj = setOutputFrame(xtraj, robot.getStateFrame());
 
-r = QuadrupedPlant();
-xtraj = setOutputFrame(xtraj, r.getStateFrame());
-v = QuadrupedVisualizer(r, safe_regions);
 v.playback(xtraj, struct('slider', true));

@@ -24,7 +24,7 @@ classdef QuadrupedVisualizer < Visualizer
       
       figure(25); clf; hold on;
       
-      for j = 1:length(obj.safe_regions)        
+      for j = 1:length(obj.safe_regions)
         V = iris.thirdParty.polytopes.lcon2vert(obj.safe_regions(j).A, obj.safe_regions(j).b);
         V = V';
         V = V(1:2, convhull(V(1,:), V(2,:)));

@@ -46,6 +46,9 @@ feet_pos = struct('rf', sdpvar(2, nsteps, 'full'), 'lf', sdpvar(2, nsteps, 'full
 dt = sdpvar(1, nsteps, 'full');
 nr = length(safe_regions);
 region = struct('rf', binvar(nr, nsteps, 'full'), 'lf', binvar(nr, nsteps, 'full'), 'rh', binvar(nr, nsteps, 'full'), 'lh', binvar(nr, nsteps, 'full'));
+sin_yaw = sdpvar(1, nsteps, 'full');
+cos_yaw = sdpvar(1, nsteps, 'full');
+rot_sector = binvar(4, nsteps, 'full');
 
 foci = struct('rf', struct('v', {[0.1; -0.05]}, 'r', {0.05}),...
               'lf', struct('v', {[0.1; 0.05]}, 'r', {0.05}),...
@@ -59,6 +62,10 @@ constraints = [body_pos(:,1) == start.body,...
                dt >= 0,...
                start.body(1) - MAX_DISTANCE <= body_pos(1,:) <= start.body(1) + MAX_DISTANCE,...
                start.body(2) - MAX_DISTANCE <= body_pos(2,:) <= start.body(2) + MAX_DISTANCE,...
+               sum(rot_sector, 1) == 1,...
+               -1 <= sin_yaw <= 1,...
+               -1 <= cos_yaw <= 1,...
+               cos_yaw(end) >= 0.9,... % Turn this off to let the robot finish with arbitrary orientation
                ];
 for f = feet
   foot = f{1};
@@ -81,7 +88,7 @@ for j = 1:nsteps
     % Enforce reachability
     for k = 1:length(foci.(foot))
       c = foci.(foot)(k);
-      constraints = [constraints, cone(feet_pos.(foot)(:,j) - (body_pos(:,j) + c.v), c.r)];
+      constraints = [constraints, cone(feet_pos.(foot)(:,j) - (body_pos(:,j) + [cos_yaw(j), -sin_yaw(j); sin_yaw(j), cos_yaw(j)] * c.v), c.r)];
     end
     
     % Enforce region membership
@@ -103,6 +110,12 @@ for j = 1:nsteps
   if j < nsteps
     constraints = [constraints, cone(body_pos(:,j+1) - body_pos(:,j), dt(j) * BODY_SPEED)];
   end
+  
+  % Enforce sin/cos sectors
+  constraints = [constraints, implies(rot_sector(1, j), sin_yaw(j) == 1 - cos_yaw(j)),...
+                              implies(rot_sector(2, j), sin_yaw(j) == 1 + cos_yaw(j)),...
+                              implies(rot_sector(3, j), sin_yaw(j) == -1 - cos_yaw(j)),...
+                              implies(rot_sector(4, j), sin_yaw(j) == -1 + cos_yaw(j))];
 end
 
 
@@ -149,7 +162,8 @@ for j = 1:nsteps-1
 end
 legend(feet{:})
 
-x = [body_pos; feet_pos.(feet{1}); feet_pos.(feet{2}); feet_pos.(feet{3}); feet_pos.(feet{4})];
+yaw = atan2(double(sin_yaw), double(cos_yaw));
+x = [body_pos; yaw; feet_pos.(feet{1}); feet_pos.(feet{2}); feet_pos.(feet{3}); feet_pos.(feet{4})];
 xtraj = PPTrajectory(foh(t, x));
 
 r = QuadrupedPlant();

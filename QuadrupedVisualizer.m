@@ -20,6 +20,8 @@ classdef QuadrupedVisualizer < Visualizer
       end
       
       bot = [-0.1, -0.1, 0.1, 0.1; -0.05, 0.05, 0.05, -0.05];
+      yaw = x(3);
+      bot = rotmat(yaw) * bot;
       bot = bsxfun(@plus, bot, x(1:2));
       
       figure(25); clf; hold on;
@@ -33,10 +35,10 @@ classdef QuadrupedVisualizer < Visualizer
       
       patch(bot(1,:), bot(2,:), 'k');
       
-      plot(x(3), x(4), 'ro', 'MarkerSize', 10)
-      plot(x(5), x(6), 'go', 'MarkerSize', 10)
-      plot(x(7), x(8), 'bo', 'MarkerSize', 10)
-      plot(x(9), x(10), 'mo', 'MarkerSize', 10)
+      plot(x(4), x(5), 'ro', 'MarkerSize', 10)
+      plot(x(6), x(7), 'go', 'MarkerSize', 10)
+      plot(x(8), x(9), 'bo', 'MarkerSize', 10)
+      plot(x(10), x(11), 'mo', 'MarkerSize', 10)
       
       
       axis equal

@@ -1,0 +1,6 @@
+[submodule "drake"]
+	path = drake
+	url = git@github.com:rdeits/drake.git
+[submodule "iris"]
+	path = iris
+	url = git@github.com:rdeits/iris-distro.git

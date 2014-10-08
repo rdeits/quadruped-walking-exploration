@@ -13,5 +13,9 @@
 ## Running the solver
 
 	cd matlab
+	matlab
+
+in the matlab console:
+
 	sol = testQuadrupedNonGaited();
 	playbackLittleDog(sol);

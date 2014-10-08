@@ -4,3 +4,9 @@
 [submodule "iris"]
 	path = iris
 	url = git@github.com:rdeits/iris-distro.git
+[submodule "gurobi"]
+	path = gurobi
+	url = https://github.com/RobotLocomotion/gurobi.git
+[submodule "mosek"]
+	path = mosek
+	url = https://github.com/RobotLocomotion/mosek.git

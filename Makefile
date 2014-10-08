@@ -18,7 +18,7 @@ export BUILD_PREFIX
 # build quietly by default.  For a verbose build, run "make VERBOSE=1"
 $(VERBOSE).SILENT:
 
-all:
+all: matlab/meshes/body.obj.mtl
 	@[ -d $(BUILD_PREFIX) ] || mkdir -p $(BUILD_PREFIX) || exit 1
 	@for subdir in $(SUBDIRS); do \
 		echo "\n-------------------------------------------"; \
@@ -46,3 +46,7 @@ clean:
 		$(MAKE) -C $$subdir clean; \
 	done
 	@# Place additional commands here if you have any
+
+matlab/meshes/body.obj.mtl:
+	mkdir -p matlab/meshes
+	cp LittleDog/meshes/* matlab/meshes/

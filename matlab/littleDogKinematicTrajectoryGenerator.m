@@ -11,7 +11,7 @@ function x_traj = littleDogKinematicTrajectoryGenerator(sol,little_dog_dir,num_k
   end
   addpath(little_dog_dir);
   robot = LittleDog();
-  S = load(fullfile(little_dog_dir,'littleDog_fp.mat'));
+  S = load(fullfile(little_dog_dir,'data','littleDog_fp.mat'));
   q_nom = S.qstar;
   q_nom(3) = 1.1;
   nq = robot.getNumPositions();

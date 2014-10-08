@@ -10,3 +10,6 @@
 [submodule "mosek"]
 	path = mosek
 	url = https://github.com/RobotLocomotion/mosek.git
+[submodule "LittleDog"]
+	path = LittleDog
+	url = git@github.com:rdeits/LittleDog.git
